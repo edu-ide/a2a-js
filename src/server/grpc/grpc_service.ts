@@ -24,7 +24,7 @@ import { ToProto } from '../../types/converters/to_proto.js';
 import { ServerCallContext } from '../context.js';
 import { Extensions } from '../../extensions.js';
 import { UserBuilder } from './common.js';
-import { HTTP_EXTENSION_HEADER } from '../../constants.js';
+import { HTTP_EXTENSION_HEADER, LEGACY_HTTP_EXTENSION_HEADER } from '../../constants.js';
 import { A2AError } from '../error.js';
 
 /**
@@ -270,7 +270,10 @@ const buildContext = async (
   userBuilder: UserBuilder
 ): Promise<ServerCallContext> => {
   const user = await userBuilder(call);
-  const extensionHeaders = call.metadata.get(HTTP_EXTENSION_HEADER);
+  const extensionHeaders = [
+    ...call.metadata.get(HTTP_EXTENSION_HEADER),
+    ...call.metadata.get(LEGACY_HTTP_EXTENSION_HEADER),
+  ];
   const extensionString = extensionHeaders.map((v) => v.toString()).join(',');
 
   return new ServerCallContext(Extensions.parseServiceParameter(extensionString), user);
@@ -279,7 +282,9 @@ const buildContext = async (
 const buildMetadata = (context: ServerCallContext): grpc.Metadata => {
   const metadata = new grpc.Metadata();
   if (context.activatedExtensions?.length) {
-    metadata.set(HTTP_EXTENSION_HEADER, context.activatedExtensions.join(','));
+    const extensionValue = context.activatedExtensions.join(',');
+    metadata.set(HTTP_EXTENSION_HEADER, extensionValue);
+    metadata.set(LEGACY_HTTP_EXTENSION_HEADER, extensionValue);
   }
   return metadata;
 };

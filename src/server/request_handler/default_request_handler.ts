@@ -129,7 +129,7 @@ export class DefaultRequestHandler implements A2ARequestHandler {
       }
     }
     // Ensure contextId is present
-    const contextId = incomingMessage.contextId || task?.contextId || uuidv4();
+    const contextId = incomingMessage.contextId || task?.contextId || process.env['A2A_CONTEXT_ID'] || uuidv4();
 
     // Validate requested extensions against agent capabilities
     if (context?.requestedExtensions) {

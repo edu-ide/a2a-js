@@ -406,6 +406,7 @@ export class RestTransportHandler {
             acceptedOutputModes: config.acceptedOutputModes ?? config.accepted_output_modes,
             blocking: config.blocking,
             historyLength: config.historyLength ?? config.history_length,
+            pushNotificationConfig: config.pushNotificationConfig ?? config.push_notification_config,
           }
         : undefined,
       message: this.normalizeMessage(p.message),

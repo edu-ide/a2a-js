@@ -15,7 +15,7 @@ import {
   toHTTPError,
 } from '../transports/rest/rest_transport_handler.js';
 import { ServerCallContext } from '../context.js';
-import { HTTP_EXTENSION_HEADER } from '../../constants.js';
+import { HTTP_EXTENSION_HEADER, LEGACY_HTTP_EXTENSION_HEADER } from '../../constants.js';
 import { UserBuilder } from './common.js';
 import { Extensions } from '../../extensions.js';
 
@@ -108,8 +108,12 @@ export function restHandler(options: RestHandlerOptions): RequestHandler {
    */
   const buildContext = async (req: Request): Promise<ServerCallContext> => {
     const user = await options.userBuilder(req);
+    const standard = req.header(HTTP_EXTENSION_HEADER);
+    const legacy = req.header(LEGACY_HTTP_EXTENSION_HEADER);
+    const requestedExtensions =
+      standard && legacy ? `${standard},${legacy}` : (standard ?? legacy ?? undefined);
     return new ServerCallContext(
-      Extensions.parseServiceParameter(req.header(HTTP_EXTENSION_HEADER)),
+      Extensions.parseServiceParameter(requestedExtensions),
       user
     );
   };
@@ -122,7 +126,9 @@ export function restHandler(options: RestHandlerOptions): RequestHandler {
    */
   const setExtensionsHeader = (res: Response, context: ServerCallContext): void => {
     if (context.activatedExtensions) {
-      res.setHeader(HTTP_EXTENSION_HEADER, Array.from(context.activatedExtensions));
+      const extensionsHeaderValue = Array.from(context.activatedExtensions);
+      res.setHeader(HTTP_EXTENSION_HEADER, extensionsHeaderValue);
+      res.setHeader(LEGACY_HTTP_EXTENSION_HEADER, extensionsHeaderValue);
     }
   };
 

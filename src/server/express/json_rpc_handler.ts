@@ -10,7 +10,7 @@ import { A2AError } from '../error.js';
 import { A2ARequestHandler } from '../request_handler/a2a_request_handler.js';
 import { JsonRpcTransportHandler } from '../transports/jsonrpc/jsonrpc_transport_handler.js';
 import { ServerCallContext } from '../context.js';
-import { HTTP_EXTENSION_HEADER } from '../../constants.js';
+import { HTTP_EXTENSION_HEADER, LEGACY_HTTP_EXTENSION_HEADER } from '../../constants.js';
 import { UserBuilder } from './common.js';
 import { SSE_HEADERS, formatSSEEvent, formatSSEErrorEvent } from '../../sse_utils.js';
 import { Extensions } from '../../extensions.js';
@@ -38,17 +38,28 @@ export function jsonRpcHandler(options: JsonRpcHandlerOptions): RequestHandler {
 
   router.use(express.json(), jsonErrorHandler);
 
+  const getRequestedExtensionsHeader = (req: Request): string | undefined => {
+    const standard = req.header(HTTP_EXTENSION_HEADER);
+    const legacy = req.header(LEGACY_HTTP_EXTENSION_HEADER);
+    if (standard && legacy) {
+      return `${standard},${legacy}`;
+    }
+    return standard ?? legacy ?? undefined;
+  };
+
   router.post('/', async (req: Request, res: Response) => {
     try {
       const user = await options.userBuilder(req);
       const context = new ServerCallContext(
-        Extensions.parseServiceParameter(req.header(HTTP_EXTENSION_HEADER)),
+        Extensions.parseServiceParameter(getRequestedExtensionsHeader(req)),
         user
       );
       const rpcResponseOrStream = await jsonRpcTransportHandler.handle(req.body, context);
 
       if (context.activatedExtensions) {
-        res.setHeader(HTTP_EXTENSION_HEADER, Array.from(context.activatedExtensions));
+        const extensionsHeaderValue = Array.from(context.activatedExtensions);
+        res.setHeader(HTTP_EXTENSION_HEADER, extensionsHeaderValue);
+        res.setHeader(LEGACY_HTTP_EXTENSION_HEADER, extensionsHeaderValue);
       }
       // Check if it's an AsyncGenerator (stream)
       if (typeof (rpcResponseOrStream as AsyncGenerator)?.[Symbol.asyncIterator] === 'function') {
