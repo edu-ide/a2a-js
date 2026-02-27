@@ -10,6 +10,31 @@ import { A2AError } from '../../error.js';
 import { A2ARequestHandler } from '../../request_handler/a2a_request_handler.js';
 
 /**
+ * Wrap a flat event ({kind:'status-update', ...}) into v1 StreamResponse format
+ * ({statusUpdate: {...}}) without protobuf conversion to preserve custom Part types.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrapEventToV1(event: any): unknown {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const kind = event?.kind as string | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const { kind: _k, ...rest } = event ?? {};
+  switch (kind) {
+    case 'status-update':
+      return { statusUpdate: rest };
+    case 'artifact-update':
+      return { artifactUpdate: rest };
+    case 'task':
+      return { task: rest };
+    case 'message':
+      return { message: rest };
+    default:
+      // Unknown kind — pass through as-is for forward compatibility
+      return event;
+  }
+}
+
+/**
  * Handles JSON-RPC transport layer, routing requests to A2ARequestHandler.
  */
 export class JsonRpcTransportHandler {
@@ -49,8 +74,8 @@ export class JsonRpcTransportHandler {
         error instanceof A2AError
           ? error
           : A2AError.parseError(
-              (error instanceof SyntaxError && error.message) || 'Failed to parse JSON request.'
-            );
+            (error instanceof SyntaxError && error.message) || 'Failed to parse JSON request.'
+          );
       return {
         jsonrpc: '2.0',
         id: rpcRequest?.id !== undefined ? rpcRequest.id : null,
@@ -86,10 +111,12 @@ export class JsonRpcTransportHandler {
         > {
           try {
             for await (const event of agentEventStream) {
+              // Apply v1 wrapper format: {statusUpdate:{...}} instead of flat {kind:'status-update',...}
+              const v1Result = wrapEventToV1(event);
               yield {
                 jsonrpc: '2.0',
-                id: requestId, // Use the original request ID for all streamed responses
-                result: event,
+                id: requestId,
+                result: v1Result,
               };
             }
           } catch (streamError) {
