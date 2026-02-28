@@ -147,6 +147,9 @@ export class JsonRpcTransportHandler {
           case 'tasks/cancel':
             result = await this.requestHandler.cancelTask(rpcRequest.params, context);
             break;
+          case 'tasks/list':
+            result = await this.requestHandler.listTasks(rpcRequest.params, context);
+            break;
           case 'tasks/pushNotificationConfig/set':
             result = await this.requestHandler.setTaskPushNotificationConfig(
               rpcRequest.params,

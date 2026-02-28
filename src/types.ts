@@ -35,6 +35,7 @@ export type A2ARequest =
   | SendStreamingMessageRequest
   | GetTaskRequest
   | CancelTaskRequest
+  | ListTasksRequest
   | SetTaskPushNotificationConfigRequest
   | GetTaskPushNotificationConfigRequest
   | TaskResubscriptionRequest
@@ -769,6 +770,43 @@ export interface TaskQueryParams {
  * This interface was referenced by `MySchema`'s JSON-Schema
  * via the `definition` "CancelTaskRequest".
  */
+
+/**
+ * Parameters for the tasks/list method (A2A spec 6.5).
+ */
+export interface TaskListParams {
+  /** Filter by context ID. */
+  contextId?: string;
+  /** Filter by task state (e.g., "working", "completed"). */
+  status?: string;
+  /** Maximum number of tasks to return (default 20, max 100). */
+  pageSize?: number;
+  /** Opaque cursor for pagination. */
+  pageToken?: string;
+  /** Max history messages per task (0 = omit history). */
+  historyLength?: number;
+}
+
+/**
+ * Response for the tasks/list method.
+ */
+export interface TaskListResponse {
+  tasks: Task[];
+  totalSize: number;
+  pageSize: number;
+  nextPageToken?: string;
+}
+
+/**
+ * Represents a JSON-RPC request for the `tasks/list` method.
+ */
+export interface ListTasksRequest {
+  id: string | number;
+  jsonrpc: "2.0";
+  method: "tasks/list";
+  params: TaskListParams;
+}
+
 export interface CancelTaskRequest {
   /**
    * The identifier for this request.

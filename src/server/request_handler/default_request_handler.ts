@@ -14,6 +14,8 @@ import {
   DeleteTaskPushNotificationConfigParams,
   GetTaskPushNotificationConfigParams,
   ListTaskPushNotificationConfigParams,
+  TaskListParams,
+  TaskListResponse,
 } from '../../types.js';
 import { AgentExecutor } from '../agent_execution/agent_executor.js';
 import { RequestContext } from '../agent_execution/request_context.js';
@@ -389,6 +391,10 @@ export class DefaultRequestHandler implements A2ARequestHandler {
       task.history = [];
     }
     return task;
+  }
+
+  async listTasks(params: TaskListParams, context?: ServerCallContext): Promise<TaskListResponse> {
+    return this.taskStore.list(params, context);
   }
 
   async cancelTask(params: TaskIdParams, context?: ServerCallContext): Promise<Task> {
